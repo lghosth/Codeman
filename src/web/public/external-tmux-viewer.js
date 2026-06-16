@@ -43,6 +43,8 @@ Object.assign(CodemanApp.prototype, {
     if (!window.__codemanExternalTmuxAvailable) return;
     // Close any existing viewer first.
     this.closeExternalTmuxViewer();
+    // Close the panel so its 10s polling stops behind the fullscreen overlay.
+    this.closeExternalTmuxPanel();
 
     const overlay = document.getElementById('externalTmuxViewer');
     if (!overlay) {
@@ -95,6 +97,12 @@ Object.assign(CodemanApp.prototype, {
       } catch {
         /* dimensions not ready yet — resize handler will catch up */
       }
+      // Focus so keyboard input works immediately (mobile soft keyboard + desktop).
+      try {
+        terminal.focus();
+      } catch {
+        /* ignore */
+      }
     });
 
     // --- WebSocket connect ---
@@ -127,8 +135,10 @@ Object.assign(CodemanApp.prototype, {
     const connect = () => {
       ws = new WebSocket(wsUrl);
       ws.onopen = () => {
-        reconnectAttempts = 0;
         // Report our initial size so the attach PTY + tmux window match.
+        // NOTE: do NOT reset reconnectAttempts here — the socket may open then
+        // immediately close with an app-level rejection (4003/4004/4008). Only
+        // reset after a successful first frame proves the session attached.
         sendResize();
       };
       ws.onmessage = (event) => {
@@ -139,8 +149,9 @@ Object.assign(CodemanApp.prototype, {
           return;
         }
         if (msg.t === 'b') {
-          // First-frame scrollback snapshot. Reset + write so reconnect also
-          // restores history cleanly.
+          // First-frame scrollback snapshot = the attach succeeded. Reset the
+          // reconnect counter now that we know this is a viable connection.
+          reconnectAttempts = 0;
           receivedFirstFrame = true;
           terminal.reset();
           if (typeof msg.d === 'string') terminal.write(msg.d);
@@ -153,15 +164,25 @@ Object.assign(CodemanApp.prototype, {
       ws.onclose = (event) => {
         ws = null;
         if (disposed || manualClose) return;
-        // 4010 = tmux session exited — no point reconnecting.
-        if (event.code === 4010) {
-          if (receivedFirstFrame) {
-            // Session ended after we were attached; surface it.
+        // Application-level rejections (disabled 4003, forbidden 4003, invalid
+        // name 4004, not found 4004, too many conns 4008, tmux exited 4010) are
+        // NOT transient — reconnecting would loop forever against a closed gate.
+        // Only reconnect on a clean/absent code (transient network drop).
+        if (event.code >= 4000 && event.code <= 4999) {
+          if (event.code === 4010 && receivedFirstFrame) {
             terminal.write('\r\n\x1b[33m[tmux session exited]\x1b[0m\r\n');
+          } else if (!receivedFirstFrame) {
+            // Never attached — surface the server's reason.
+            terminal.write(
+              '\r\n\x1b[31m[connection refused: ' +
+                this._escapeTerm(event.reason || String(event.code)) +
+                ']\x1b[0m\r\n'
+            );
           }
           return;
         }
-        // Transient disconnect — exponential backoff reconnect (5 attempts).
+        // Transient disconnect (network drop / server restart) — exponential
+        // backoff reconnect (5 attempts, 250ms→2s capped).
         if (reconnectAttempts < 5) {
           const delay = Math.min(250 * Math.pow(2, reconnectAttempts), 2000);
           reconnectAttempts++;
@@ -235,5 +256,14 @@ Object.assign(CodemanApp.prototype, {
     if (this._externalTmuxViewer) {
       this._externalTmuxViewer.cleanup();
     }
+  },
+
+  /**
+   * Strip ESC bytes from a string before writing it into the terminal as a
+   * status message — prevents ANSI/escape injection from a crafted close
+   * reason. (Close reasons come from our own server, but defense-in-depth.)
+   */
+  _escapeTerm(s) {
+    return String(s).replace(/\x1b/g, '\\x1b');
   },
 });

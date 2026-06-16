@@ -630,8 +630,8 @@
       <div class="external-tmux-panel-header">
         <div class="external-tmux-panel-title">External tmux</div>
         <div class="external-tmux-panel-actions">
-          <button class="btn-icon-sm" onclick="app.refreshExternalTmuxList()" title="Refresh">&#x21BB;</button>
-          <button class="btn-icon-sm" onclick="app.closeExternalTmuxPanel()" title="Close">&times;</button>
+          <button class="btn-icon-sm" onclick="app.refreshExternalTmuxList()" title="Refresh" aria-label="Refresh session list">&#x21BB;</button>
+          <button class="btn-icon-sm" onclick="app.closeExternalTmuxPanel()" title="Close" aria-label="Close external tmux panel">&times;</button>
         </div>
       </div>
       <div class="external-tmux-panel-body" id="externalTmuxSessionsBody">
@@ -643,7 +643,7 @@
     <div class="external-tmux-viewer" id="externalTmuxViewer">
       <div class="external-tmux-viewer-header">
         <span class="external-tmux-viewer-title" id="externalTmuxViewerTitle"></span>
-        <button class="btn-icon-sm" onclick="app.closeExternalTmuxViewer()" title="Close viewer (detaches from tmux)">&times;</button>
+        <button class="btn-icon-sm" onclick="app.closeExternalTmuxViewer()" title="Close viewer (detaches from tmux)" aria-label="Close terminal viewer">&times;</button>
       </div>
       <div class="external-tmux-viewer-terminal" id="externalTmuxViewerTerminal"></div>
     </div>

@@ -76,61 +76,59 @@ Object.assign(CodemanApp.prototype, {
           '<span class="external-tmux-hint">Create one with <code>tmux new -s &lt;name&gt;</code></span></div>';
         return;
       }
-      body.innerHTML = sessions
-        .map((s) => {
-          const d = new Date(s.created * 1000);
-          const createdStr = isNaN(d.getTime()) ? '?' : d.toLocaleDateString();
-          const attachedBadge = s.attached ? '<span class="external-tmux-badge attached">attached</span>' : '';
-          const sizeStr = s.width && s.height ? `${s.width}×${s.height}` : '';
-          return (
-            '<div class="external-tmux-item" onclick="app.openExternalTmuxViewer(' +
-            JSON.stringify(s.name) +
-            ')" role="button" tabindex="0">' +
-            '<div class="external-tmux-item-main">' +
-            '<span class="external-tmux-item-name">' +
-            this._escapeHtml(s.name) +
-            '</span>' +
-            attachedBadge +
-            '</div>' +
-            '<div class="external-tmux-item-meta">' +
-            '<span>' +
-            s.windows +
-            ' window' +
-            (s.windows === 1 ? '' : 's') +
-            '</span>' +
-            (sizeStr ? '<span>' + sizeStr + '</span>' : '') +
-            '<span>' +
-            createdStr +
-            '</span>' +
-            '</div>' +
-            '</div>'
-          );
-        })
-        .join('');
+      // Build via DOM API (no inline onclick — avoids attribute-quoting/XSS risks).
+      body.innerHTML = '';
+      for (const s of sessions) {
+        const item = document.createElement('div');
+        item.className = 'external-tmux-item';
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+        item.dataset.name = s.name;
+        item.title = 'Attach to ' + s.name;
+
+        const main = document.createElement('div');
+        main.className = 'external-tmux-item-main';
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'external-tmux-item-name';
+        nameSpan.textContent = s.name; // textContent = auto-escaped
+        main.appendChild(nameSpan);
+        if (s.attached) {
+          const badge = document.createElement('span');
+          badge.className = 'external-tmux-badge attached';
+          badge.textContent = 'attached';
+          main.appendChild(badge);
+        }
+        item.appendChild(main);
+
+        const meta = document.createElement('div');
+        meta.className = 'external-tmux-item-meta';
+        const winCount = document.createElement('span');
+        winCount.textContent = s.windows + ' window' + (s.windows === 1 ? '' : 's');
+        meta.appendChild(winCount);
+        if (s.width && s.height) {
+          const size = document.createElement('span');
+          size.textContent = s.width + '×' + s.height;
+          meta.appendChild(size);
+        }
+        const created = document.createElement('span');
+        const d = new Date(s.created * 1000);
+        created.textContent = isNaN(d.getTime()) ? '?' : d.toLocaleDateString();
+        meta.appendChild(created);
+        item.appendChild(meta);
+
+        const open = () => this.openExternalTmuxViewer(s.name);
+        item.addEventListener('click', open);
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        });
+        body.appendChild(item);
+      }
     } catch (err) {
       body.innerHTML = '<div class="external-tmux-empty">Failed to load sessions.</div>';
       console.error('[ExternalTmux] list failed:', err);
     }
-  },
-
-  /**
-   * Minimal HTML escaper for session names (names are already validated
-   * server-side against /^[A-Za-z0-9_-]+$/, but defense-in-depth).
-   */
-  _escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => {
-      switch (c) {
-        case '&':
-          return '&amp;';
-        case '<':
-          return '&lt;';
-        case '>':
-          return '&gt;';
-        case '"':
-          return '&quot;';
-        default:
-          return '&#39;';
-      }
-    });
   },
 });

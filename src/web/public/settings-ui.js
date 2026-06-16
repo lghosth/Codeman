@@ -1822,7 +1822,10 @@ Object.assign(CodemanApp.prototype, {
     // External-tmux button — hidden by default (App Settings → Display →
     // "External tmux"). Server renders the initial state (only when the
     // feature is available); this handles a live toggle from a settings save.
-    const showExternalTmuxButton = settings.showExternalTmuxButton ?? defaults.showExternalTmuxButton ?? false;
+    // Gate on availability so a synced/local setting can't reveal a
+    // nonfunctional button on an instance where the server disabled the feature.
+    const showExternalTmuxButton =
+      window.__codemanExternalTmuxAvailable && (settings.showExternalTmuxButton ?? defaults.showExternalTmuxButton ?? false);
     const extTmuxBtn = document.querySelector('.btn-external-tmux');
     if (extTmuxBtn) {
       extTmuxBtn.classList.toggle('btn-external-tmux--hidden', !showExternalTmuxButton);
@@ -2340,5 +2343,9 @@ Object.assign(CodemanApp.prototype, {
       subagentsPanel.classList.remove('open');
     }
     this.subagentPanelVisible = false;
+    // External-tmux panel + viewer (Escape closes both; closing the viewer
+    // detaches from tmux — the user's session survives).
+    if (typeof this.closeExternalTmuxPanel === 'function') this.closeExternalTmuxPanel();
+    if (typeof this.closeExternalTmuxViewer === 'function') this.closeExternalTmuxViewer();
   },
 });
