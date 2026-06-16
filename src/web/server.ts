@@ -42,12 +42,14 @@ import { execSync } from 'node:child_process';
 import { hostname as getHostname } from 'node:os';
 import { dataPath } from '../config/instance.js';
 import { getHookSecret } from '../config/hook-secret.js';
+import { resolveExternalTmuxGate } from '../config/external-tmux.js';
 import { EventEmitter } from 'node:events';
 import { Session, isExternalCliMode, type BackgroundTask } from '../session.js';
 import type { ClaudeMode, SessionAttachmentHistoryItem, SessionState, WorkflowRunInfo } from '../types.js';
 import { RespawnController, RespawnConfig } from '../respawn-controller.js';
 import type { TerminalMultiplexer } from '../mux-interface.js';
 import { createMultiplexer } from '../mux-factory.js';
+import { ExternalTmuxManager } from '../external-tmux-manager.js';
 import { getStore } from '../state-store.js';
 import { extractCompletionPhrase } from '../ralph-config.js';
 import { fileStreamManager } from '../file-stream-manager.js';
@@ -151,6 +153,8 @@ import {
   registerClipboardRoutes,
   registerOrchestratorRoutes,
   registerWsRoutes,
+  registerExternalTmuxRoutes,
+  registerExternalTmuxWsRoutes,
 } from './routes/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -228,6 +232,7 @@ export class WebServer extends EventEmitter {
   private https: boolean;
   private testMode: boolean;
   private mux: TerminalMultiplexer;
+  private externalTmux: ExternalTmuxManager;
   // Centralized cleanup for standalone timers (intervals + resettable timeouts)
   private cleanup = new CleanupManager();
   // Cached light state for SSE init (avoids rebuilding on every reconnect)
@@ -313,6 +318,11 @@ export class WebServer extends EventEmitter {
       this.app = Fastify({ logger: false, rewriteUrl });
     }
     this.mux = createMultiplexer();
+    const tmuxGate = resolveExternalTmuxGate(this.host, this.allowUnauthenticatedNetwork ?? false);
+    this.externalTmux = new ExternalTmuxManager({ enabled: tmuxGate.enabled });
+    if (tmuxGate.enabled) console.log('[ExternalTmux] enabled (default socket)');
+    else if (process.env.CODEMAN_EXTERNAL_TMUX === '1')
+      console.warn(`[ExternalTmux] requested but disabled: ${tmuxGate.reason}`);
     this.sse = new SseStreamManager(
       {
         getSessionStateWithRespawn: (sessionId) => {
@@ -592,6 +602,7 @@ export class WebServer extends EventEmitter {
       stopTranscriptWatcher: this.stopTranscriptWatcher.bind(this),
       // InfraPort
       mux: this.mux,
+      externalTmux: this.externalTmux,
       runSummaryTrackers: this.runSummaryTrackers,
       activePlanOrchestrators: this.activePlanOrchestrators,
       scheduledRuns: this.scheduledRuns,
@@ -870,7 +881,9 @@ export class WebServer extends EventEmitter {
     registerPlanRoutes(this.app, ctx);
     registerClipboardRoutes(this.app, ctx);
     registerOrchestratorRoutes(this.app, ctx);
+    registerExternalTmuxRoutes(this.app, ctx);
     registerWsRoutes(this.app, ctx, () => this.getHostPolicy());
+    registerExternalTmuxWsRoutes(this.app, ctx, () => this.getHostPolicy());
   }
 
   /**
@@ -1210,6 +1223,9 @@ export class WebServer extends EventEmitter {
           `<script type="module" src="/gesture/gesture-codeman.js${v}"></script>\n</head>`
         );
       }
+    }
+    if (this.externalTmux.enabled) {
+      html = html.replace('</head>', `<script>window.__codemanExternalTmuxAvailable=true;</script>\n</head>`);
     }
     return html;
   }
@@ -1705,6 +1721,7 @@ export class WebServer extends EventEmitter {
       timestamp: now,
       inputCjkForm: process.env.INPUT_CJK_FORM?.toUpperCase() === 'ON',
       planUsage: getLatestPlanUsage(), // last-known plan-usage telemetry, for the header chip on fresh load
+      externalTmuxAvailable: this.externalTmux.enabled,
     };
 
     this.cachedLightState = { data: result, timestamp: now };

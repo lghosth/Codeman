@@ -18,3 +18,5 @@ export { registerPlanRoutes } from './plan-routes.js';
 export { registerOrchestratorRoutes } from './orchestrator-routes.js';
 export { registerClipboardRoutes } from './clipboard-routes.js';
 export { registerWsRoutes } from './ws-routes.js';
+export { registerExternalTmuxRoutes } from './external-tmux-routes.js';
+export { registerExternalTmuxWsRoutes } from './external-tmux-ws-routes.js';

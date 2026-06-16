@@ -27,6 +27,7 @@
  * | push         | PushSubscriptionRecord, VapidKeys                                     | `~/.codeman/push-keys.json`, `~/.codeman/push-subscriptions.json` |
  * | plan         | PlanItem, PlanTaskStatus, TddPhase                                    | In-memory → `GET /api/sessions/:id/plan/tasks` |
  * | orchestrator | OrchestratorState, OrchestratorPlan, OrchestratorConfig, OrchestratorPersistState | `~/.codeman/state.json` → `GET /api/orchestrator/status` |
+ * | external-tmux | ExternalTmuxSession                                                  | Default tmux socket → `GET /api/external-tmux/sessions` |
  *
  * ## Cross-domain relationship map
  *
@@ -68,3 +69,4 @@ export * from './plan.js';
 export * from './orchestrator.js';
 export * from './update.js';
 export * from './workflow-run.js';
+export * from './external-tmux.js';
