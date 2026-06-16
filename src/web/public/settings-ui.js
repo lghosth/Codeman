@@ -317,6 +317,11 @@ Object.assign(CodemanApp.prototype, {
     document.getElementById('appSettingsUltracodeFloatingWindows').checked =
       settings.ultracodeFloatingWindows ?? defaults.ultracodeFloatingWindows ?? false;
     document.getElementById('appSettingsShowMultiMonitorButton').checked = settings.showMultiMonitorButton ?? defaults.showMultiMonitorButton ?? false;
+    // External-tmux button — only show the settings toggle when the server
+    // reports the feature available (CODEMAN_EXTERNAL_TMUX=1). Default OFF.
+    const extTmuxItem = document.getElementById('appSettingsExternalTmuxItem');
+    if (extTmuxItem) extTmuxItem.style.display = window.__codemanExternalTmuxAvailable ? '' : 'none';
+    document.getElementById('appSettingsShowExternalTmuxButton').checked = settings.showExternalTmuxButton ?? defaults.showExternalTmuxButton ?? false;
     document.getElementById('appSettingsShowPlanUsageLimits').checked = settings.showPlanUsageLimits ?? defaults.showPlanUsageLimits ?? false;
     // Gesture control lives in the Input section (alongside Local Echo / CJK Input)
     // but is only available when the instance runs with CODEMAN_GESTURE=1 (server sets
@@ -1374,6 +1379,7 @@ Object.assign(CodemanApp.prototype, {
       showUltracodeAgents: document.getElementById('appSettingsShowUltracodeAgents').checked,
       ultracodeFloatingWindows: document.getElementById('appSettingsUltracodeFloatingWindows').checked,
       showMultiMonitorButton: document.getElementById('appSettingsShowMultiMonitorButton').checked,
+      showExternalTmuxButton: document.getElementById('appSettingsShowExternalTmuxButton').checked,
       showPlanUsageLimits: document.getElementById('appSettingsShowPlanUsageLimits').checked,
       gestureControlEnabled: document.getElementById('appSettingsGestureControl').checked,
       subagentTrackingEnabled: document.getElementById('appSettingsSubagentTracking').checked,
@@ -1690,6 +1696,7 @@ Object.assign(CodemanApp.prototype, {
         showUltracodeAgents: false,
         ultracodeFloatingWindows: false,
         showMultiMonitorButton: false,
+        showExternalTmuxButton: false,
         showPlanUsageLimits: false,
         showAttachmentsButton: false,
         // Input
@@ -1810,6 +1817,15 @@ Object.assign(CodemanApp.prototype, {
     const multiMonitorBtn = document.querySelector('.btn-multimonitor');
     if (multiMonitorBtn) {
       multiMonitorBtn.classList.toggle('btn-multimonitor--hidden', !showMultiMonitorButton);
+    }
+
+    // External-tmux button — hidden by default (App Settings → Display →
+    // "External tmux"). Server renders the initial state (only when the
+    // feature is available); this handles a live toggle from a settings save.
+    const showExternalTmuxButton = settings.showExternalTmuxButton ?? defaults.showExternalTmuxButton ?? false;
+    const extTmuxBtn = document.querySelector('.btn-external-tmux');
+    if (extTmuxBtn) {
+      extTmuxBtn.classList.toggle('btn-external-tmux--hidden', !showExternalTmuxButton);
     }
 
     // Ultracode/Workflow agents launcher — hidden by default; reveal when enabled.

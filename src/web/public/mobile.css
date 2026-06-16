@@ -1189,6 +1189,27 @@ html.mobile-init .file-browser-panel {
     max-height: 35vh;
   }
 
+  /* External-tmux panel: full-width bottom sheet on mobile (above toolbar) */
+  .external-tmux-panel {
+    width: 100%;
+    max-width: 100%;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: calc(44px + 2rem + var(--safe-area-bottom));
+    border-radius: 12px 12px 0 0;
+    max-height: 45vh;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  /* The terminal viewer is already fullscreen on mobile — just ensure the
+     header sits below the mobile status bar (handled via safe-area in the
+     base rule). Larger touch targets for list items on mobile. */
+  .external-tmux-item {
+    min-height: 48px;
+    padding: 12px 14px;
+  }
+
   /* Modals must stack above the fixed mobile header (z-index 1200), or the
      modal header with the close button is buried underneath it and the
      full-screen modal cannot be dismissed */

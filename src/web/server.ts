@@ -1192,6 +1192,13 @@ export class WebServer extends EventEmitter {
     if (settings.showMultiMonitorButton === true) {
       html = html.replace(' btn-multimonitor--hidden', '');
     }
+    // External-tmux header button: same reveal pattern as multimonitor. Only
+    // strip the hidden class when BOTH the feature is available on this
+    // instance AND the user opted in. (Availability is also injected as
+    // window.__codemanExternalTmuxAvailable further below.)
+    if (this.externalTmux.enabled && settings.showExternalTmuxButton === true) {
+      html = html.replace(' btn-external-tmux--hidden', '');
+    }
     // Plan-usage chip: ships hidden (`header-plan-usage--hidden`) and is revealed
     // PER-DEVICE by the client (settings-ui.js applyHeaderVisibilitySettings). It
     // used to be server-revealed from a synced setting, but that leaked the desktop

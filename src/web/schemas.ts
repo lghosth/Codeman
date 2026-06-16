@@ -372,6 +372,7 @@ export const SettingsUpdateSchema = z
     showFileBrowser: z.boolean().optional(),
     showSubagents: z.boolean().optional(),
     showMultiMonitorButton: z.boolean().optional(),
+    showExternalTmuxButton: z.boolean().optional(),
     showPlanUsageLimits: z.boolean().optional(),
     // Action field (NOT persisted as a setting): when true, (re)injects the
     // plan-usage statusLine exporter into active Claude sessions so live usage %
