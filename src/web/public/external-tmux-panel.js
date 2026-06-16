@@ -64,7 +64,9 @@ Object.assign(CodemanApp.prototype, {
     body.innerHTML = '<div class="external-tmux-empty">Loading…</div>';
     try {
       const res = await fetch('/api/external-tmux/sessions');
-      const data = await res.json();
+      const payload = await res.json();
+      // API wraps responses as { success, data } — unwrap the data envelope.
+      const data = payload && payload.data ? payload.data : payload;
       if (!data.enabled) {
         body.innerHTML = '<div class="external-tmux-empty">External tmux is not enabled on this instance.</div>';
         return;
