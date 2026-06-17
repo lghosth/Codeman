@@ -11,7 +11,6 @@ describe('ExternalTmuxManager', () => {
     expect(manager.listSessions()).toEqual([]);
     expect(manager.sessionExists('my-work_1')).toBe(false);
     expect(manager.captureBuffer('my-work_1')).toBeNull();
-    expect(manager.resizeWindow('my-work_1', 80, 24)).toBe(false);
   });
 });
 

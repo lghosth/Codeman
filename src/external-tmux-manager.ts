@@ -130,33 +130,4 @@ export class ExternalTmuxManager {
       return null;
     }
   }
-
-  /**
-   * Resize the session's window. Fire-and-forget from the caller's perspective
-   * (WS resize handler invokes this non-blockingly). argv form = injection-safe.
-   *
-   * NOTE (Codex correction #4): we intentionally do NOT set `window-size manual`
-   * on the user's session — that would mutate their tmux config and persist. If
-   * another client is attached with automatic sizing, tmux may override the
-   * requested size; this is acceptable for v1 and documented in the UI. If the
-   * user's session has `destroy-unattached` or aggressive auto-sizing, resize
-   * may not stick.
-   */
-  resizeWindow(name: string, cols: number, rows: number): boolean {
-    if (!this.enabled || IS_TEST_MODE || !isValidExternalName(name)) return false;
-    if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || cols > 500 || rows < 1 || rows > 200) {
-      return false;
-    }
-    try {
-      execFileSync('tmux', ['resize-window', '-t', name, '-x', String(cols), '-y', String(rows)], {
-        encoding: 'utf-8',
-        timeout: EXEC_TIMEOUT_MS,
-        env: cleanTmuxEnv(),
-        stdio: 'ignore',
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
 }

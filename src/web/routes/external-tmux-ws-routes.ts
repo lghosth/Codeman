@@ -152,8 +152,17 @@ export function registerExternalTmuxWsRoutes(
             } catch {
               /* ignore */
             }
-            // Fire-and-forget; argv form is injection-safe.
-            ctx.externalTmux.resizeWindow(name, msg.c, msg.r);
+            // Deliberately do NOT call `tmux resize-window` here. In tmux 3.x,
+            // `resize-window` without -A/-a implicitly sets the window's
+            // `window-size` to `manual`, permanently locking the size to what
+            // the web client requested — even after the web client detaches,
+            // the real terminal would no longer auto-fit on re-attach. The
+            // ptyProcess.resize above changes the PTY size; the tmux client
+            // (this attach process) reports it to the server via SIGWINCH, and
+            // the server negotiates under the window's existing `window-size`
+            // policy (default `latest`), which is exactly the native tmux
+            // behavior we want. Do not re-add resize-window without also
+            // restoring window-size on detach.
           }
         } catch {
           /* ignore malformed */

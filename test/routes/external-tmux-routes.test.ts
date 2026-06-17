@@ -26,7 +26,6 @@ function makeCtx(externalTmux: Partial<MockExternalTmux> & Pick<MockExternalTmux
       listSessions: vi.fn(() => []),
       sessionExists: vi.fn(() => false),
       captureBuffer: vi.fn(() => null),
-      resizeWindow: vi.fn(() => false),
       ...externalTmux,
     } as MockExternalTmux,
   };
